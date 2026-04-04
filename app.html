@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NO EXCUSES — Daily Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #080808;
+  --surface: #0f0f0f;
+  --surface2: #151515;
+  --border: #1e1e1e;
+  --red: #ff2020;
+  --red-glow: rgba(255,32,32,0.15);
+  --red-dim: rgba(255,32,32,0.08);
+  --amber: #ffaa00;
+  --green: #00ff88;
+  --green-glow: rgba(0,255,136,0.1);
+  --white: #f5f5f5;
+  --muted: #555;
+  --subtle: #2a2a2a;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--white);font-family:'DM Sans',sans-serif;min-height:100vh;overflow-x:hidden;cursor:none;}
+#cursor{position:fixed;width:12px;height:12px;background:var(--red);border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);transition:width .2s,height .2s,background .2s;mix-blend-mode:difference;}
+#cursor-ring{position:fixed;width:36px;height:36px;border:1px solid rgba(255,32,32,0.5);border-radius:50%;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);transition:transform .12s ease,width .3s,height .3s;}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:9997;opacity:0.6;}
+::-webkit-scrollbar{width:3px;}::-webkit-scrollbar-track{background:var(--bg);}::-webkit-scrollbar-thumb{background:var(--red);}
+nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:20px 48px;display:flex;justify-content:space-between;align-items:center;background:linear-gradient(to bottom,rgba(8,8,8,0.98),transparent);backdrop-filter:blur(2px);border-bottom:1px solid var(--border);}
+.nav-logo{font-family:'Bebas Neue',sans-serif;font-size:1.6rem;letter-spacing:3px;color:var(--white);text-decoration:none;}
+.nav-logo span{color:var(--red);}
+.nav-links{display:flex;gap:32px;list-style:none;}
+.nav-links a{font-family:'JetBrains Mono',monospace;font-size:0.7rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);text-decoration:none;transition:color .2s;}
+.nav-links a:hover{color:var(--white);}
+.nav-links a.active{color:var(--red);}
+.streak-badge{display:flex;align-items:center;gap:8px;background:var(--subtle);border:1px solid var(--border);padding:6px 14px;font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:var(--amber);}
+.streak-badge::before{content:'🔥';font-size:0.9rem;}
+.notif{position:fixed;bottom:32px;right:32px;background:var(--surface);border:1px solid var(--red);padding:16px 24px;font-family:'JetBrains Mono',monospace;font-size:0.72rem;letter-spacing:1px;color:var(--white);z-index:2000;transform:translateY(80px);opacity:0;transition:all .4s cubic-bezier(0.16,1,0.3,1);max-width:320px;}
+.notif.show{transform:translateY(0);opacity:1;}
+.notif-title{color:var(--red);margin-bottom:4px;font-size:0.65rem;letter-spacing:2px;text-transform:uppercase;}
+.notif.green-notif{border-color:var(--green);}
+.notif.green-notif .notif-title{color:var(--green);}
+.app-wrap{display:grid;grid-template-columns:1fr 380px;min-height:100vh;padding-top:81px;}
+.main-col{border-right:1px solid var(--border);padding:48px;display:flex;flex-direction:column;gap:40px;}
+.app-eyebrow{font-family:'JetBrains Mono',monospace;font-size:0.65rem;letter-spacing:4px;color:var(--red);text-transform:uppercase;margin-bottom:10px;}
+.app-date{font-family:'Bebas Neue',sans-serif;font-size:clamp(2.5rem,5vw,4.5rem);letter-spacing:3px;line-height:1;color:var(--white);}
+.app-greeting{font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--muted);letter-spacing:2px;margin-top:8px;text-transform:uppercase;}
+.progress-meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.progress-label{font-family:'JetBrains Mono',monospace;font-size:0.62rem;letter-spacing:3px;color:var(--muted);text-transform:uppercase;}
+.progress-pct{font-family:'Bebas Neue',sans-serif;font-size:1.2rem;letter-spacing:2px;color:var(--red);transition:color .3s;}
+.progress-pct.done{color:var(--green);}
+.progress-bar-wrap{height:2px;background:var(--border);overflow:hidden;}
+.progress-bar-fill{height:100%;background:var(--red);width:0;transition:width .6s cubic-bezier(0.16,1,0.3,1),background .3s;}
+.progress-bar-fill.done{background:var(--green);}
+.block-label{font-family:'JetBrains Mono',monospace;font-size:0.62rem;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin-bottom:14px;}
+.add-task-row{display:flex;gap:0;}
+.task-input{flex:1;background:var(--surface);border:1px solid var(--border);border-right:none;color:var(--white);font-family:'JetBrains Mono',monospace;font-size:0.78rem;letter-spacing:1px;padding:14px 18px;outline:none;transition:border-color .2s;}
+.task-input::placeholder{color:var(--muted);}
+.task-input:focus{border-color:var(--red);}
+.add-btn{background:var(--red);color:#fff;border:none;padding:14px 24px;font-family:'JetBrains Mono',monospace;font-size:0.72rem;letter-spacing:3px;text-transform:uppercase;cursor:none;transition:background .2s;white-space:nowrap;position:relative;overflow:hidden;}
+.add-btn::after{content:'';position:absolute;inset:0;background:rgba(255,255,255,0.1);transform:translateX(-100%);transition:transform .3s;}
+.add-btn:hover::after{transform:translateX(0);}
+.tasks-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+.tasks-count{font-family:'JetBrains Mono',monospace;font-size:0.62rem;color:var(--muted);letter-spacing:2px;}
+.task-list{display:flex;flex-direction:column;gap:2px;}
+.empty-state{border:1px solid var(--border);padding:56px 40px;text-align:center;position:relative;overflow:hidden;}
+.empty-state::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at center,var(--red-dim) 0%,transparent 70%);pointer-events:none;}
+.empty-icon{font-family:'Bebas Neue',sans-serif;font-size:4rem;letter-spacing:4px;color:var(--subtle);display:block;margin-bottom:12px;}
+.empty-sub{font-family:'JetBrains Mono',monospace;font-size:0.65rem;letter-spacing:2px;color:var(--muted);text-transform:uppercase;line-height:1.8;}
+.empty-sub a{color:var(--red);text-decoration:none;border-bottom:1px solid rgba(255,32,32,0.3);}
+.task-item{display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--border);border-left:3px solid transparent;padding:16px 18px;transition:border-color .2s,background .2s;animation:slideIn .25s ease both;position:relative;}
+@keyframes slideIn{from{opacity:0;transform:translateX(-12px);}to{opacity:1;transform:translateX(0);}}
+.task-item:hover{background:var(--surface2);}
+.task-item.done-item{border-left-color:var(--green);background:rgba(0,255,136,0.03);}
+.task-item.fail-item{border-left-color:var(--red);background:rgba(255,32,32,0.03);}
+.task-index{font-family:'JetBrains Mono',monospace;font-size:0.6rem;color:var(--subtle);letter-spacing:1px;min-width:20px;flex-shrink:0;}
+.task-name-text{flex:1;font-size:0.88rem;color:var(--white);letter-spacing:.3px;transition:color .2s;}
+.task-item.done-item .task-name-text{text-decoration:line-through;color:var(--muted);}
+.task-item.fail-item .task-name-text{color:#884444;}
+.task-status{font-family:'JetBrains Mono',monospace;font-size:0.58rem;letter-spacing:2px;text-transform:uppercase;padding:3px 8px;border:1px solid var(--border);color:var(--muted);}
+.task-item.done-item .task-status{color:var(--green);border-color:rgba(0,255,136,0.3);}
+.task-item.fail-item .task-status{color:var(--red);border-color:rgba(255,32,32,0.3);}
+.task-actions{display:flex;gap:4px;}
+.action-btn{width:30px;height:30px;background:var(--surface2);border:1px solid var(--border);color:var(--muted);font-size:0.75rem;cursor:none;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;font-family:'JetBrains Mono',monospace;}
+.action-btn:hover{border-color:var(--white);color:var(--white);}
+.action-btn.done-btn.active,.action-btn.done-btn:hover{background:rgba(0,255,136,0.08);border-color:rgba(0,255,136,0.4);color:var(--green);}
+.action-btn.fail-btn.active,.action-btn.fail-btn:hover{background:var(--red-dim);border-color:rgba(255,32,32,0.4);color:var(--red);}
+.action-btn.del-btn:hover{background:var(--red-dim);border-color:rgba(255,32,32,0.3);color:var(--red);}
+.min-warn{font-family:'JetBrains Mono',monospace;font-size:0.65rem;letter-spacing:1px;color:var(--red);padding:10px 14px;border:1px solid rgba(255,32,32,0.25);background:var(--red-dim);display:none;line-height:1.6;margin-top:8px;}
+.min-warn.show{display:block;}
+.side-col{padding:48px 36px;display:flex;flex-direction:column;gap:32px;overflow-y:auto;max-height:calc(100vh - 81px);position:sticky;top:81px;}
+.side-card{background:var(--surface);border:1px solid var(--border);padding:28px;position:relative;}
+.side-card-eyebrow{font-family:'JetBrains Mono',monospace;font-size:0.6rem;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin-bottom:20px;}
+.streak-display{display:flex;align-items:baseline;gap:6px;margin-bottom:6px;}
+.streak-big{font-family:'Bebas Neue',sans-serif;font-size:5rem;letter-spacing:4px;line-height:1;color:var(--amber);}
+.streak-unit{font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;}
+.streak-sub{font-family:'JetBrains Mono',monospace;font-size:0.65rem;color:var(--muted);letter-spacing:1px;margin-bottom:20px;line-height:1.6;}
+.streak-dots{display:flex;gap:4px;flex-wrap:wrap;}
+.s-dot{width:10px;height:10px;border-radius:2px;background:var(--subtle);transition:background .3s;}
+.s-dot.on{background:var(--amber);}
+.s-dot.today-win{background:var(--green);}
+.s-dot.today-fail{background:var(--red);}
+.roast-inner{background:var(--bg);border:1px solid var(--border);border-left:3px solid var(--red);padding:18px;}
+.roast-inner.win{border-left-color:var(--green);}
+.roast-type{font-family:'JetBrains Mono',monospace;font-size:0.6rem;letter-spacing:3px;text-transform:uppercase;color:var(--red);margin-bottom:10px;}
+.roast-inner.win .roast-type{color:var(--green);}
+.roast-msg{font-size:0.85rem;color:#888;line-height:1.7;font-style:italic;}
+.roast-inner.win .roast-msg{color:#668866;}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px;background:var(--border);}
+.stat-cell{background:var(--surface2);padding:18px;}
+.stat-cell-num{font-family:'Bebas Neue',sans-serif;font-size:2.2rem;letter-spacing:2px;line-height:1;margin-bottom:4px;}
+.stat-cell-label{font-family:'JetBrains Mono',monospace;font-size:0.58rem;letter-spacing:2px;color:var(--muted);text-transform:uppercase;}
+.reset-note{font-family:'JetBrains Mono',monospace;font-size:0.6rem;letter-spacing:1px;color:var(--muted);text-align:center;padding:14px;border:1px solid var(--border);text-transform:uppercase;}
+.reset-note span{color:var(--white);}
+@media(max-width:900px){nav{padding:16px 24px;}.nav-links{display:none;}.app-wrap{grid-template-columns:1fr;}.main-col{padding:32px 24px;border-right:none;border-bottom:1px solid var(--border);}.side-col{padding:32px 24px;position:static;max-height:none;}}
+</style>
+</head>
+<body>
+
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
+
+<div class="notif" id="notif">
+  <div class="notif-title" id="notif-title">⚡ Alert</div>
+  <div id="notif-text">Stay disciplined.</div>
+</div>
+
+<nav>
+  <a href="index.html" class="nav-logo">NO<span>·</span>EXCUSES</a>
+  <ul class="nav-links">
+    <li><a href="index.html">Home</a></li>
+    <li><a href="app.html" class="active">Tracker</a></li>
+    <li><a href="calendar.html">Calendar</a></li>
+    <li><a href="templates.html">AI Tasks</a></li>
+  </ul>
+  <div class="streak-badge" id="nav-streak">Day 0 Streak</div>
+</nav>
+
+<div class="app-wrap">
+  <div class="main-col">
+
+    <div class="app-header">
+      <div class="app-eyebrow">// Daily execution log</div>
+      <div class="app-date" id="app-date">TODAY</div>
+      <div class="app-greeting" id="app-greeting">Loading...</div>
+    </div>
+
+    <div class="progress-block">
+      <div class="progress-meta">
+        <span class="progress-label">Execution rate</span>
+        <span class="progress-pct" id="progress-pct">0%</span>
+      </div>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-fill" id="progress-fill" style="width:0%"></div>
+      </div>
+    </div>
+
+    <div class="add-task-block">
+      <div class="block-label">// Add today's mission</div>
+      <div class="add-task-row">
+        <input class="task-input" id="task-input" type="text" placeholder="What will you actually do today..." maxlength="80" autocomplete="off"/>
+        <button class="add-btn" onclick="addTask()">+ ADD</button>
+      </div>
+      <div class="min-warn" id="min-warn"></div>
+    </div>
+
+    <div class="tasks-block">
+      <div class="tasks-header">
+        <div class="block-label" id="tasks-label">// No missions loaded</div>
+        <div class="tasks-count" id="tasks-count"></div>
+      </div>
+      <div class="task-list" id="task-list">
+        <div class="empty-state" id="empty-state">
+          <span class="empty-icon">NO MISSIONS</span>
+          <div class="empty-sub">Add a task above or let<br><a href="templates.html">AI build your pack →</a></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="side-col">
+
+    <div class="side-card">
+      <div class="side-card-eyebrow">// Current streak</div>
+      <div class="streak-display">
+        <div class="streak-big" id="streak-num">0</div>
+        <div class="streak-unit">Days</div>
+      </div>
+      <div class="streak-sub" id="streak-sub">Start your streak today.</div>
+      <div class="side-card-eyebrow">// Last 14 days</div>
+      <div class="streak-dots" id="streak-dots"></div>
+    </div>
+
+    <div class="side-card">
+      <div class="side-card-eyebrow">// System feedback</div>
+      <div class="roast-inner" id="roast-card">
+        <div class="roast-type" id="roast-type">Standby...</div>
+        <div class="roast-msg" id="roast-msg">Mark a task done or failed to receive feedback.</div>
+      </div>
+    </div>
+
+    <div class="side-card">
+      <div class="side-card-eyebrow">// Today's stats</div>
+      <div class="stats-grid">
+        <div class="stat-cell"><div class="stat-cell-num" id="stat-total">0</div><div class="stat-cell-label">Total</div></div>
+        <div class="stat-cell"><div class="stat-cell-num" style="color:var(--green)" id="stat-done">0</div><div class="stat-cell-label">Done</div></div>
+        <div class="stat-cell"><div class="stat-cell-num" style="color:var(--red)" id="stat-fail">0</div><div class="stat-cell-label">Failed</div></div>
+        <div class="stat-cell"><div class="stat-cell-num" id="stat-pct">0%</div><div class="stat-cell-label">Rate</div></div>
+      </div>
+    </div>
+
+    <div class="reset-note">⏱ Resets at <span>midnight</span> — streak updates then</div>
+
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY='noexcuse_v2_data';
+const ROASTS=["You said you would. You didn't. That's the whole story.","Your future self is watching this and shaking their head.","Every miss is a vote for who you don't want to be.","Comfort chose you today. Don't let it win tomorrow.","That excuse forming in your head? It won't matter in a year.","The version of you that wins doesn't miss this.","Discipline is doing it when you don't want to. You just failed that test.","Another day, another broken promise to yourself.","Missing once is a mistake. Missing twice is a pattern. Watch yourself.","You had time. You had the plan. You just didn't execute."];
+const REWARDS=["That's how it's done. No noise, just execution.","You said you would. You did. That's the entire formula.","Stack these. This is how the gap between you and everyone else grows.","Not motivation. Not luck. Pure discipline. Own it.","This is the version of you that wins. Remember how it feels.","Every done task is a rep. You're building something real.","Future you is already thanking you for this.","Keep this energy. The compound effect is real."];
+
+function getData(){const r=localStorage.getItem(STORAGE_KEY);if(!r)return def();try{return JSON.parse(r);}catch{return def();}}
+function def(){return{tasks:[],streak:0,lastDate:null,history:[]};}
+function saveData(d){localStorage.setItem(STORAGE_KEY,JSON.stringify(d));}
+function todayStr(){return new Date().toISOString().split('T')[0];}
+
+function checkReset(d){
+  const today=todayStr();
+  if(d.lastDate&&d.lastDate!==today){
+    const allDone=d.tasks.length>0&&d.tasks.every(t=>t.status==='done');
+    const anyFail=d.tasks.some(t=>t.status==='fail');
+    const done=d.tasks.filter(t=>t.status==='done').length;
+    const fail=d.tasks.filter(t=>t.status==='fail').length;
+    const total=d.tasks.length;
+    d.history.push({date:d.lastDate,allDone,anyFail,done,fail,total});
+    if(d.history.length>14)d.history.shift();
+    if(allDone&&total>0)d.streak+=1;
+    else if(anyFail||total===0)d.streak=0;
+    d.tasks=[];d.lastDate=today;saveData(d);
+  }else if(!d.lastDate){d.lastDate=today;saveData(d);}
+  return d;
+}
+
+function render(){
+  let d=getData();d=checkReset(d);
+  const tasks=d.tasks,total=tasks.length;
+  const done=tasks.filter(t=>t.status==='done').length;
+  const fail=tasks.filter(t=>t.status==='fail').length;
+  const pending=tasks.filter(t=>t.status==='pending').length;
+  const pct=total>0?Math.round((done/total)*100):0;
+  const now=new Date();
+  document.getElementById('app-date').textContent=now.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).toUpperCase();
+  const hr=now.getHours();
+  document.getElementById('app-greeting').textContent=hr<12?'// GOOD MORNING. EXECUTE.':hr<17?'// GOOD AFTERNOON. NO DELAYS.':'// GOOD EVENING. DID YOU SHOW UP?';
+  const pctEl=document.getElementById('progress-pct');
+  const fillEl=document.getElementById('progress-fill');
+  const allWin=done===total&&total>0;
+  pctEl.textContent=pct+'%';
+  fillEl.style.width=total===0?'0%':pct+'%';
+  pctEl.className='progress-pct'+(allWin?' done':'');
+  fillEl.className='progress-bar-fill'+(allWin?' done':'');
+  document.getElementById('nav-streak').textContent='Day '+d.streak+' Streak';
+  document.getElementById('streak-num').textContent=d.streak;
+  document.getElementById('streak-sub').textContent=d.streak===0?'Start your streak today.':d.streak<7?d.streak+' day'+(d.streak>1?'s':'')+' in. Keep going.':d.streak<30?d.streak+' days. You\'re building something.':d.streak+' days. Unstoppable.';
+  const dotsEl=document.getElementById('streak-dots');dotsEl.innerHTML='';
+  d.history.slice(-13).forEach(h=>{const dot=document.createElement('div');dot.className='s-dot'+(h.allDone?' on':'');dotsEl.appendChild(dot);});
+  const td=document.createElement('div');td.className='s-dot'+(allWin?' today-win':fail>0?' today-fail':'');dotsEl.appendChild(td);
+  document.getElementById('stat-total').textContent=total;
+  document.getElementById('stat-done').textContent=done;
+  document.getElementById('stat-fail').textContent=fail;
+  document.getElementById('stat-pct').textContent=pct+'%';
+  document.getElementById('tasks-label').textContent=total===0?'// No missions loaded':'// '+pending+' pending — '+done+' done — '+fail+' failed';
+  document.getElementById('tasks-count').textContent=total>0?total+' total':'';
+  const listEl=document.getElementById('task-list');
+  const emptyEl=document.getElementById('empty-state');
+  if(tasks.length===0){listEl.innerHTML='';listEl.appendChild(emptyEl);}
+  else{
+    listEl.innerHTML='';
+    tasks.forEach((task,i)=>{
+      const item=document.createElement('div');
+      item.className='task-item'+(task.status==='done'?' done-item':task.status==='fail'?' fail-item':'');
+      const st=task.status==='done'?'DONE':task.status==='fail'?'FAILED':'PENDING';
+      item.innerHTML=`<div class="task-index">0${i+1}</div><div class="task-name-text">${escapeHtml(task.name)}</div><div class="task-status">${st}</div><div class="task-actions"><button class="action-btn done-btn ${task.status==='done'?'active':''}" onclick="setStatus(${i},'done')">✓</button><button class="action-btn fail-btn ${task.status==='fail'?'active':''}" onclick="setStatus(${i},'fail')">✗</button><button class="action-btn del-btn" onclick="deleteTask(${i})">×</button></div>`;
+      listEl.appendChild(item);
+    });
+  }
+  updateRoast(done,fail,pending,total);
+}
+
+function updateRoast(done,fail,pending,total){
+  const card=document.getElementById('roast-card');
+  const type=document.getElementById('roast-type');
+  const msg=document.getElementById('roast-msg');
+  if(total===0){card.className='roast-inner';type.textContent='Standby...';msg.textContent='Mark a task done or failed to receive feedback.';return;}
+  if(done===total&&total>0){card.className='roast-inner win';type.textContent='// Mission complete';msg.textContent=REWARDS[Math.floor(done+total*2)%REWARDS.length];return;}
+  if(fail>0){card.className='roast-inner';type.textContent='// System says —';msg.textContent=ROASTS[Math.floor(fail*3+total)%ROASTS.length];return;}
+  if(done>0&&pending>0){card.className='roast-inner win';type.textContent='// '+done+' down. Keep executing.';msg.textContent="Good start. You're not done yet. Finish what you started.";return;}
+  card.className='roast-inner';type.textContent='// Waiting for action';msg.textContent="Tasks don't execute themselves. What are you waiting for?";
+}
+
+function addTask(){
+  const input=document.getElementById('task-input');
+  const name=input.value.trim();
+  const warnEl=document.getElementById('min-warn');
+  if(!name){showNotif('ERROR','Write a task first.',true);return;}
+  if(name.length<2){showNotif('ERROR','Task too short.',true);return;}
+  const d=getData();
+  d.tasks.push({name,status:'pending',addedAt:Date.now()});
+  saveData(d);input.value='';
+  if(d.tasks.length===1){warnEl.textContent='⚠ 1 task? Serious people load at least 3 missions.';warnEl.classList.add('show');}
+  else if(d.tasks.length===2){warnEl.textContent='⚠ Add at least one more. Make it count.';warnEl.classList.add('show');}
+  else{warnEl.classList.remove('show');if(d.tasks.length===3)showNotif('LOCKED IN','3 missions loaded. Now execute.');}
+  render();
+}
+
+function setStatus(index,status){
+  const d=getData();
+  if(!d.tasks[index])return;
+  d.tasks[index].status=d.tasks[index].status===status?'pending':status;
+  saveData(d);render();
+  if(status==='done')showNotif('EXECUTED','Task marked done. Keep going.');
+  if(status==='fail')showNotif('LOGGED','Failure recorded. Face it. Fix it.',true);
+}
+
+function deleteTask(index){
+  const d=getData();d.tasks.splice(index,1);saveData(d);render();showNotif('REMOVED','Task deleted.');
+}
+
+function showNotif(title,text,isRed=false){
+  const notif=document.getElementById('notif');
+  document.getElementById('notif-title').textContent='⚡ '+title;
+  document.getElementById('notif-text').textContent=text;
+  notif.className='notif'+(isRed?'':' green-notif');
+  notif.classList.add('show');
+  setTimeout(()=>notif.classList.remove('show'),2800);
+}
+
+const cursor=document.getElementById('cursor');
+const ring=document.getElementById('cursor-ring');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cursor.style.left=mx+'px';cursor.style.top=my+'px';});
+function animRing(){rx+=(mx-rx)*0.12;ry+=(my-ry)*0.12;ring.style.left=rx+'px';ring.style.top=ry+'px';requestAnimationFrame(animRing);}
+animRing();
+
+function escapeHtml(str){return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+document.getElementById('task-input').addEventListener('keydown',e=>{if(e.key==='Enter')addTask();});
+setInterval(()=>{const d=getData();if(d.lastDate&&d.lastDate!==todayStr())render();},60000);
+render();
+</script>
+</body>
+</html>
